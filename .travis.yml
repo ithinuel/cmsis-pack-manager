@@ -1,11 +1,48 @@
 language: rust
 cache: cargo
-
-matrix:
+script:
+- |
+  cd rust
+  cargo test --release
+  cd ..
+  python --version
+  pip2 --version
+  pip2 install --user --upgrade pip setuptools wheel
+  python setup.py build
+  pip2 install --user pytest hypothesis mock jinja2
+  python setup.py test
+rust: nightly
+jobs:
   include:
-     - os: linux
-       script: sh travis.sh
-       rust: nightly
-     - os: osx
-       script: sh travis.sh
-       rust: nightly
+  - os: linux
+    stage: test
+  - os: osx
+    stage: test
+  - os: linux
+    stage: deploy
+    script:
+    - |
+      pip2 install --user --upgrade pip setuptools wheel
+      python setup.py bdist_wheel
+  - os: osx
+    stage: deploy
+    script:
+    - |
+      pip2 install --user --upgrade pip setuptools wheel
+      python setup.py bdist_wheel
+stages:
+- name: deploy
+  if: branch = s3-deploy AND type = push
+deploy:
+  provider: s3
+  access_key_id: AKIAJRSWHGVBJUV5HFZA
+  skip_cleanup: true
+  secret_access_key:
+    secure: yoUc1wOBF3yJVtZyKNodLZcojoOUsIe1+TOrTSLIHTN0xvB7XUSHvUMpEIBJOonaHi6iAwAjd1ZsQz64UmKhnba2vhV1BXrNcuDOk9KvuZGtWDKeYGEhdMxoGDPDTtdo8Y+bNUzKj7yWnq9Fcow4A6BH/XwVbf093bAPnrn92bHaA90Mwzvwn6tqJlO/GfTvZD/H2AZt7FvyxR76FybaJ+DAmTrt3AI//QLYm0RfqB9qLzdaDrDimjTOyhbSPK7ikCth/EJKTN8i1gGvkZOfqua2SORiwGBMH39UbLVsQ6IvNmKng5hGTgee/jxWxseGgBIQAU7qyFkwOevyFDY3Cv5VZ56jkzuO9+FHOOgJK+Yy1mIPodYwur76634IaypcURlZ7LPxTB91IVGaQ7rgWLVM+g3VVWN4L7YcdDm/VmWB4nmxSzahI9rtmFj/9JaHLSFw3Y59HoWJAyJTrPE5z+VHlfVeI4VyZ5gZRMn98VWDLKUmwnLZpwVB91RUqIarEgG2fUNyBD4Nzw6gA+v3qR2o+j0qCPaNp22OqcJ3FH6jAwBqFSBJC+mhLH9WCdQOvCs3NDEXXeQMILer6nRK8yHxjzKyhP+2NsFwf06lBWUDsGnGsaP7cvOfBDwe8vfQAvgC/DLfRXBC4jzi/qP5Twm9Iron+skXNxdo0OYBBus=
+  bucket: mbed-os
+  local-dir: dist
+  upload-dir: builds/cmsis-pack-mananger
+  acl: public_read
+  on:
+    repo: theotherjimmy/cmsis-pack-manager
+    branch: s3-deploy
